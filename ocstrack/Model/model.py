@@ -192,10 +192,10 @@ class SCHISM:
                 _logger.warning(f"Error reading {fpath}: {e}")
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
-        if not selected:
-            _logger.warning(f"No files matched pattern in {self.output_dir}.
-"
-            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
+            if not selected:
+                _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
+                f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
+            return selected
         return selected
 
     def load_variable(self, path: str) -> xr.DataArray:
