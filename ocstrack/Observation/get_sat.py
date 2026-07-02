@@ -361,6 +361,3 @@ def get_multi_sat(start_date: str,
         _logger.warning("No satellite datasets were successfully processed.")
 
     return None
-lly processed.")
-
-    return None
