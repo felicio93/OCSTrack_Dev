@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 
-from ocstrack.Model.model import SCHISM
 from ocstrack.Observation.satellite import SatelliteData
 from ocstrack.Observation.argofloat import ArgoData
 from ocstrack.Collocation.temporal import temporal_nearest, temporal_interpolated
@@ -29,7 +28,7 @@ class Collocate:
 
     This is the main class. It handles the spatial and temporal
     collocation of observation data (Satellite or Argo) with
-    unstructured model outputs (e.g., SCHISM).
+    unstructured model outputs.
     
     It dispatches to either a 2D/surface ('2D', '3D_Surface') or
     3D/profile ('3D_Profile') collocation strategy based on the
@@ -41,7 +40,7 @@ class Collocate:
         Run the full collocation and return a combined xarray.Dataset.
     """
     def __init__(self,
-                 model_run: SCHISM,
+                 model_run: object,
                  observation: Union[SatelliteData, ArgoData],
                  dist_coast: Optional[xr.Dataset] = None,
                  n_nearest: Optional[int] = 4,
@@ -54,8 +53,8 @@ class Collocate:
 
         Parameters
         ----------
-        model_run : SCHISM
-            Initialized Model object (e.g., SCHISM) containing grid and file info.
+        model_run : object
+            Initialized Model object containing grid and file info.
         observation : Union[SatelliteData, ArgoData]
             Initialized Observation object (e.g., SatelliteData or ArgoData).
         dist_coast : xarray.Dataset, optional
@@ -118,12 +117,12 @@ class Collocate:
 
             # STRATEGY 1: Use the full time array if it exists (e.g. from your model.py fix)
             if hasattr(self.model, 'time') and len(self.model.time) >= 2:
-                 # Calculate mean timestep from the first few steps to be safe
-                 # (Taking a small sample avoids overhead if array is huge)
-                 sample_times = self.model.time[:100] 
-                 timestep = np.diff(sample_times).mean()
-                 self.time_buffer = timestep / 2
-                 _logger.info(f"Inferred time_buffer from model.time: {self.time_buffer}")
+                # Calculate mean timestep from the first few steps to be safe
+                # (Taking a small sample avoids overhead if array is huge)
+                sample_times = self.model.time[:100]
+                timestep = np.diff(sample_times).mean()
+                self.time_buffer = timestep / 2
+                _logger.info(f"Inferred time_buffer from model.time: {self.time_buffer}")
 
             # STRATEGY 2: Scan files until we find one with valid data
             else:
@@ -149,18 +148,29 @@ class Collocate:
                         if len(times) >= 2:
                             timestep = np.diff(times).mean()
                             self.time_buffer = timestep / 2
-                            _logger.info(f"Inferred time_buffer from file #{i} ({example_file}): {self.time_buffer}")
+                            _logger.info(
+                                "Inferred time_buffer from file #%d (%s): %s",
+                                i,
+                                example_file,
+                                self.time_buffer,
+                            )
                             found_valid_dt = True
                             break # Stop looping, we found it!
                         else:
-                            _logger.debug(f"File {example_file} has insufficient time steps ({len(times)}). Checking next...")
+                            _logger.debug(
+                                "File %s has insufficient time steps (%d). Checking next...",
+                                example_file,
+                                len(times),
+                            )
     
                     except Exception as e:
                         _logger.warning(f"Error reading {example_file} for time buffer: {e}")
                         continue
 
                 if not found_valid_dt:
-                     raise ValueError("Cannot infer time_buffer: Scanned all files but none contained >= 2 time steps.")
+                     raise ValueError(
+                         "Cannot infer time_buffer: Scanned all files but none contained >= 2 time steps."
+                     )
 
         else:
             self.time_buffer = time_buffer
@@ -267,7 +277,11 @@ class Collocate:
                 time_args = (ib, ia, wts)
             else:
                 if self.temporal_interp:
-                    _logger.warning(f"Cannot perform temporal interpolation for {path} as it has less than 2 timesteps. Falling back to nearest neighbor.")
+                    _logger.warning(
+                        "Cannot perform temporal interpolation for %s as it has less than 2 timesteps. "
+                        "Falling back to nearest neighbor.",
+                        path,
+                    )
                 obs_sub, idx, tdel = temporal_nearest(self.obs.ds,
                                                       m_times,
                                                       self.time_buffer,
@@ -554,10 +568,10 @@ class Collocate:
                 ib, ia, wts = time_args
                 t_idx_b, t_idx_a, t_wt = ib[i], ia[i], wts[i]
 
-                zcor_b = model_all_zcor.isel(time=t_idx_b, nSCHISM_hgrid_node=node_indices).values
-                zcor_a = model_all_zcor.isel(time=t_idx_a, nSCHISM_hgrid_node=node_indices).values
-                var_b = model_all_var.isel(time=t_idx_b, nSCHISM_hgrid_node=node_indices).values
-                var_a = model_all_var.isel(time=t_idx_a, nSCHISM_hgrid_node=node_indices).values
+                zcor_b = model_all_zcor.isel(time=t_idx_b, node=node_indices).values
+                zcor_a = model_all_zcor.isel(time=t_idx_a, node=node_indices).values
+                var_b = model_all_var.isel(time=t_idx_b, node=node_indices).values
+                var_a = model_all_var.isel(time=t_idx_a, node=node_indices).values
 
                 model_zcor_at_nodes = zcor_b * (1 - t_wt) + zcor_a * t_wt
                 model_var_at_nodes = var_b * (1 - t_wt) + var_a * t_wt
@@ -565,9 +579,9 @@ class Collocate:
             else: # Temporal nearest
                 t_idx = time_args[i]
                 model_zcor_at_nodes = model_all_zcor.isel(time=t_idx,
-                                                          nSCHISM_hgrid_node=node_indices).values
+                                                          node=node_indices).values
                 model_var_at_nodes = model_all_var.isel(time=t_idx,
-                                                        nSCHISM_hgrid_node=node_indices).values
+                                                        node=node_indices).values
 
             # 3. Vertical-then-Horizontal Interpolation
             model_profiles_at_argo_depths = np.full((self.n_nearest, n_valid_levels), np.nan)

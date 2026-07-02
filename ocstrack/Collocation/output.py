@@ -26,7 +26,10 @@ def get_max_neighbors(result_list):
         return 1
 
     # Filter for valid arrays
-    valid_arrs = [arr for arr in result_list if hasattr(arr, 'ndim') and arr.ndim == 2 and arr.size > 0]
+        valid_arrs = []
+    for arr in result_list:
+        if hasattr(arr, 'ndim') and arr.ndim == 2 and arr.size > 0:
+            valid_arrs.append(arr)
     if not valid_arrs:
         # This can happen if radius search finds 0 neighbors for all points
         return 1
@@ -220,7 +223,7 @@ def make_collocated_nc_3d(results: dict, max_levels: int) -> xr.Dataset:
         },
         attrs={
             "Conventions": "CF-1.7",
-            "title": "CF-compliant Profile (Argo) vs Model (SCHISM) Dataset",
+            "title": "CF-compliant Profile (Argo) vs Model Dataset",
             "description": f"Collocation of {obs_var_name} vs {model_var_name}"
         }
     )

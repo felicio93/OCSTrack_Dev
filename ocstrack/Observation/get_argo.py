@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import shutil
-import time
+
 from datetime import datetime
 from typing import Union, Optional, List, Tuple
 from urllib.parse import urljoin
@@ -400,9 +400,13 @@ def clean_argo_data(file_paths: List[str],
             else:
                 _logger.warning(f"Skipping empty time-filtered dataset: {file_path}")
 
-        except Exception as e:
-            _logger.warning(f"Failed to clean {file_path}: {type(e).__name__} - {e}")
-
+        except Exception as exception:
+            _logger.warning(
+                "Failed to clean %s: %s - %s",
+                file_path,
+                type(exception).__name__,
+                exception,
+            )
 
 def get_argo(start_date: str,
              end_date: str,

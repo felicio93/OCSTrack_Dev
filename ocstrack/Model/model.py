@@ -11,7 +11,6 @@ import xarray as xr
 
 _logger = logging.getLogger(__name__)
 
-
 def natural_sort_key(filename: str) -> List[Union[int, str]]:
     """
     Generate a key for natural sorting of filenames (e.g., file10 comes after file2).
@@ -189,13 +188,18 @@ class SCHISM:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as e:
-                _logger.warning(f"Error reading {fpath}: {e}")
+            except Exception as exception:
+                _logger.warning("Error reading %s: %s", fpath, exception)
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
         if not selected:
-            _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
-            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
+            _logger.warning(
+                    "No files matched pattern in %s. "
+                    "Make sure the model files fall within %s and %s",
+                    self.output_dir,
+                    self.start_date,
+                    self.end_date,
+                )
         return selected
 
     def load_variable(self, path: str) -> xr.DataArray:
@@ -346,8 +350,8 @@ class SCHISM:
                         if not np.issubdtype(t.dtype, np.datetime64):
                              t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as e:
-                print(f"Warning: Could not read time from {fpath}: {e}")
+            except Exception as exception:
+                print(f"Warning: Could not read time from {fpath}: {exception}")
 
         if all_times:
             self._time = np.concatenate(all_times)
@@ -537,8 +541,8 @@ class ADCSWAN:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as e:
-            _logger.error(f"Error loading variable from {path}: {e}")
+        except Exception as exception:
+            _logger.error("Error loading variable from %s: %s", path, exception)
             if 'ds' in locals():
                 ds.close()
             raise
@@ -677,12 +681,13 @@ class WW3:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as e:
-                _logger.warning(f"Error reading {fpath}: {e}")
+            except Exception as exception:
+                _logger.warning("Error reading %s: %s", fpath, exception)
                 continue
 
         if not selected:
-            _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
+            _logger.warning(f"No files matched pattern in {self.output_dir}.
+"
             f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
 
@@ -733,8 +738,8 @@ class WW3:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as e:
-            _logger.error(f"Error loading variable from {path}: {e}")
+        except Exception as exception:
+            _logger.error("Error loading variable from %s: %s", path, exception)
             if 'ds' in locals():
                 ds.close()
             raise
@@ -794,8 +799,8 @@ class WW3:
                         if not np.issubdtype(t.dtype, np.datetime64):
                              t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as e:
-                print(f"Warning: Could not read time from {fpath}: {e}")
+            except Exception as exception:
+                print(f"Warning: Could not read time from {fpath}: {exception}")
 
         if all_times:
             self._time = np.concatenate(all_times)
@@ -805,7 +810,7 @@ class WW3:
 
         return self._time
 
-def stretching(Vstr, thts, thtb, hc, N, kgrid):
+def stretching(Vstretching, theta_s, theta_b, hc, N, kgrid):
     """
      STRETCHING:  Compute ROMS vertical coordinate stretching function
 
@@ -851,7 +856,7 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
     #-----------------------------------------------------------------
 
     # Original vertical stretching function (Song and Haidvogel, 1994).
-    if (Vstr == 1):
+    if (Vstretching == 1):
         ds = 1.0/N
 
         if (kgrid == 1):
@@ -863,15 +868,15 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
             lev  = np.linspace(1.0,N,Np)-0.5
             s    = (lev-N)*ds
 
-        if (thts > 0):
-            Ptheta = np.sinh(thts*s)/np.sinh(thts)
-            Rtheta = np.tanh(thts*(s+0.5))/(2.0*np.tanh(0.5*thts))-0.5
-            C      = (1.0-thtb)*Ptheta+thtb*Rtheta
+        if (theta_s > 0):
+            Ptheta = np.sinh(theta_s*s)/np.sinh(theta_s)
+            Rtheta = np.tanh(theta_s*(s+0.5))/(2.0*np.tanh(0.5*theta_s))-0.5
+            C      = (1.0-theta_b)*Ptheta+theta_b*Rtheta
         else:
             C=s
 
     # A. Shchepetkin (UCLA-ROMS, 2005) vertical stretching function.
-    if (Vstr==2):
+    if (Vstretching==2):
         alfa = 1.0
         beta = 1.0
         ds   = 1.0/N
@@ -885,11 +890,13 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
             lev  = np.linspace(1.0,N,Np)-0.5
             s    = (lev-N)*ds
 
-        if (thts > 0):
-            Csur = (1.0-np.cosh(thts*s))/(np.cosh(thts)-1.0)
-            if (thtb > 0):
-                Cbot   = -1.0+np.sinh(thtb*(s+1.0))/np.sinh(thtb)
-                weigth = (s+1.0)**alfa*(1.0+(alfa/beta)*(1.0-(s+1.0)**beta))
+        if (theta_s > 0):
+            Csur = (1.0-np.cosh(theta_s*s))/(np.cosh(theta_s)-1.0)
+            if (theta_b > 0):
+                Cbot   = -1.0+np.sinh(theta_b*(s+1.0))/np.sinh(theta_b)
+                weigth = (s + 1.0) ** alfa * (
+                    1.0 + (alfa / beta) * (1.0 - (s + 1.0) ** beta)
+                )
                 C      = weigth*Csur+(1.0-weigth)*Cbot
             else:
                 C=Csur
@@ -897,7 +904,7 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
             C=s
 
     # R. Geyer BBL vertical stretching function.
-    if (Vstr==3):
+    if (Vstretching==3):
         ds   = 1.0/N
 
         if (kgrid == 1):
@@ -909,9 +916,9 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
             lev  = np.linspace(1.0,N,Np)-0.5
             s    = (lev-N)*ds
 
-        if (thts > 0):
-            exp_s = thts   # surface stretching exponent
-            exp_b = thtb   # bottom  stretching exponent
+        if (theta_s > 0):
+            exp_s = theta_s   # surface stretching exponent
+            exp_b = theta_b   # bottom  stretching exponent
             alpha = 3      # scale factor for all hyperbolic functions
             Cbot  = np.log(np.cosh(alpha*(s+1.0)**exp_b))/np.log(np.cosh(alpha))-1.0
             Csur  = -np.log(cosh(alpha*abs(s)**exp_s))/log(cosh(alpha))
@@ -922,7 +929,7 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
 
     # A. Shchepetkin (UCLA-ROMS, 2010) double vertical stretching function
     # with bottom refinement
-    if (Vstr == 4):
+    if (Vstretching == 4):
         ds   = 1.0/N
 
         if (kgrid == 1):
@@ -934,13 +941,13 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
             lev  = np.linspace(1.0,N,Np)-0.5
             s    = (lev-N)*ds
 
-        if (thts > 0):
-            Csur = (1.0-np.cosh(thts*s))/(np.cosh(thts)-1.0)
+        if (theta_s > 0):
+            Csur = (1.0-np.cosh(theta_s*s))/(np.cosh(theta_s)-1.0)
         else:
             Csur = -s**2
 
-        if (thtb > 0):
-            Cbot = (np.exp(thtb*Csur)-1.0)/(1.0-np.exp(-thtb))
+        if (theta_b > 0):
+            Cbot = (np.exp(theta_b*Csur)-1.0)/(1.0-np.exp(-theta_b))
             C    = Cbot
         else:
             C    = Csur
@@ -948,7 +955,7 @@ def stretching(Vstr, thts, thtb, hc, N, kgrid):
     return (s,C)
 
 
-def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
+def set_depth( Vtransform, Vstretching, theta_s, theta_b, hc, N, igrid, h, zeta ):
     """
      Given a batymetry (h), free-surface (zeta) and terrain-following
      parameters, this function computes the 3D depths for the requested
@@ -1013,7 +1020,7 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
     Lp,Mp   = np.shape(h)
     L       = Lp-1
     M       = Mp-1
-    if (igrid==5):
+    if igrid==5:
         z   = np.empty((Lp,Mp,Np))
     else:
         z   = np.empty((Lp,Mp,N))
@@ -1026,7 +1033,7 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
     else:
         kgrid=0
 
-    s,C = stretching(Vstr, thts, thtb, hc, N, kgrid);
+    s,C = stretching(Vstretching, theta_s, theta_b, hc, N, kgrid);
     #-----------------------------------------------------------------------
     #  Average bathymetry and free-surface at requested C-grid type.
     #-----------------------------------------------------------------------
@@ -1043,14 +1050,14 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
     elif (igrid==4):
         hv    = 0.5*(h[0:Lp,0:M]+h[0:Lp,1:Mp])
         zetav = 0.5*(zeta[0:Lp,0:M]+zeta[0:Lp,1:Mp])
-    elif (igrid==5):
+    elif igrid==5:
         hr    = h
         zetar = zeta
 
     #----------------------------------------------------------------------
     # Compute depths (m) at requested C-grid location.
     #----------------------------------------------------------------------
-    if (Vtr == 1):
+    if (Vtransform == 1):
         if (igrid==1):
             for k in range (0,N):
                 z0 = (s[k]-C[k])*hc + C[k]*hr
@@ -1067,12 +1074,12 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
             for k in range (0,N):
                 z0 = (s[k]-C[k])*hc + C[k]*hv
                 z[:,:,k] = z0 + zetav*(1.0 + z0/hv)
-        elif (igrid==5):
+        elif igrid==5:
             z[:,:,0] = -hr
             for k in range (0,Np):
                 z0 = (s[k]-C[k])*hc + C[k]*hr
                 z[:,:,k] = z0 + zetar*(1.0 + z0/hr)
-    elif (Vtr==2):
+    elif Vtransform==2:
         if (igrid==1):
             for k in range (0,N):
                 z0 = (hc*s[k]+C[k]*hr)/(hc+hr)
@@ -1089,7 +1096,7 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
             for k in range (0,N):
                 z0 = (hc*s[k]+C[k]*hv)/(hc+hv)
                 z[:,:,k] = zetav+(zetav+hv)*z0
-        elif (igrid==5):
+        elif igrid==5:
             for k in range (0,Np):
                 z0 = (hc*s[k]+C[k]*hr)/(hc+hr)
                 z[:,:,k] = zetar+(zetar+hr)*z0
@@ -1185,8 +1192,8 @@ class ROMS:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as e:
-                _logger.warning(f"Error reading {fpath}: {e}")
+            except Exception as exception:
+                _logger.warning("Error reading %s: %s", fpath, exception)
                 continue
         return selected
 
@@ -1241,7 +1248,17 @@ class ROMS:
             # Loop over each time step to calculate z_rho
             for t_idx in range(len(zeta_da['ocean_time'])):
                 zeta_t = zeta_da.isel(ocean_time=t_idx).values
-                z_rho_t = set_depth(self.Vtransform, self.Vstretching, self.theta_s, self.theta_b, self.hc, self.N, 1, self.h, zeta_t)
+                z_rho_t = set_depth(
+                    self.Vtransform,
+                    self.Vstretching,
+                    self.theta_s,
+                    self.theta_b,
+                    self.hc,
+                    self.N,
+                    1,
+                    self.h,
+                    zeta_t,
+                )
                 # The output of set_depth is (eta, xi, s_rho), so we need to transpose it
                 z_rho_all[t_idx, :, :, :] = np.transpose(z_rho_t, (2, 0, 1))
 
@@ -1253,7 +1270,7 @@ class ROMS:
                 coords=ds.coords
             )
             # Stack dimensions and rename to be compatible with Collocate class
-            ds_out = ds_out.stack(nSCHISM_hgrid_node=('eta_rho', 'xi_rho'))
+            ds_out = ds_out.stack(node=('eta_rho', 'xi_rho'))
             ds_out = ds_out.rename({'ocean_time': 'time'})
             return ds_out
 
@@ -1285,8 +1302,8 @@ class ROMS:
                         if not np.issubdtype(t.dtype, np.datetime64):
                              t = xr.decode_cf(ds[['ocean_time']])['ocean_time'].values
                         all_times.append(t)
-            except Exception as e:
-                print(f"Warning: Could not read time from {fpath}: {e}")
+            except Exception as exception:
+                print(f"Warning: Could not read time from {fpath}: {exception}")
 
         if all_times:
             self._time = np.concatenate(all_times)
@@ -1295,3 +1312,11 @@ class ROMS:
             self._time = np.array([])
 
         return self._time
+lf._time
+_times)
+            self._time.sort()
+        else:
+            self._time = np.array([])
+
+        return self._time
+lf._time
