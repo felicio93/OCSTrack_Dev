@@ -682,9 +682,9 @@ class WW3:
                 continue
 
         if not selected:
-            _logger.warning(f"No files matched pattern in {self.output_dir}.
-"
+            _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
             f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
+        return selected
         return selected
 
     def _load_mesh_data(self, filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
