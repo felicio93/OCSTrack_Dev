@@ -134,7 +134,6 @@ def crop_by_shape():
     """
     To be implemented
     """
-    pass
 
 def crop_sat_data(file_paths: List[str],
                   cropped_dir: str,
@@ -352,9 +351,12 @@ def get_multi_sat(start_date: str,
             _logger.info(f"Concatenated multisat dataset saved to \
                          {multisat_path}")
             return all_sat_ds
-        except Exception as e:
-            _logger.warning(f"Failed to concatenate all satellite datasets: \
-                            {type(e).__name__} - {e}")
+        except Exception as exception:
+            _logger.warning(
+                "Failed to concatenate all satellite datasets: %s - %s",
+                type(exception).__name__,
+                exception,
+            )
     else:
         _logger.warning("No satellite datasets were successfully processed.")
 

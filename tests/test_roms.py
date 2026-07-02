@@ -98,6 +98,6 @@ def test_roms_load_3d_file_pair(roms_test_data):
     assert "temp" in ds
     assert "z_rho" in ds
     assert "time" in ds.dims
-    assert "nSCHISM_hgrid_node" in ds.dims
+    assert "node" in ds.dims
     assert ds["z_rho"].shape == (1, 40, 200)
     assert ds["time"].shape == (1,)
