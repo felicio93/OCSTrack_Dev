@@ -188,18 +188,14 @@ class SCHISM:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as exception:
-                _logger.warning("Error reading %s: %s", fpath, exception)
+            except Exception as e:
+                _logger.warning(f"Error reading {fpath}: {e}")
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
         if not selected:
-            _logger.warning(
-                    "No files matched pattern in %s. "
-                    "Make sure the model files fall within %s and %s",
-                    self.output_dir,
-                    self.start_date,
-                    self.end_date,
-                )
+            _logger.warning(f"No files matched pattern in {self.output_dir}.
+"
+            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
 
     def load_variable(self, path: str) -> xr.DataArray:
@@ -350,8 +346,8 @@ class SCHISM:
                         if not np.issubdtype(t.dtype, np.datetime64):
                              t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as exception:
-                print(f"Warning: Could not read time from {fpath}: {exception}")
+            except Exception as e:
+                print(f"Warning: Could not read time from {fpath}: {e}")
 
         if all_times:
             self._time = np.concatenate(all_times)
@@ -541,8 +537,8 @@ class ADCSWAN:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as exception:
-            _logger.error("Error loading variable from %s: %s", path, exception)
+        except Exception as e:
+            _logger.error(f"Error loading variable from {path}: {e}")
             if 'ds' in locals():
                 ds.close()
             raise
@@ -681,18 +677,14 @@ class WW3:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as exception:
-                _logger.warning("Error reading %s: %s", fpath, exception)
+            except Exception as e:
+                _logger.warning(f"Error reading {fpath}: {e}")
                 continue
 
         if not selected:
-                _logger.warning(
-                    "No files matched pattern in %s. "
-                    "Make sure the model files fall within %s and %s",
-                    self.output_dir,
-                    self.start_date,
-                    self.end_date,
-                )
+            _logger.warning(f"No files matched pattern in {self.output_dir}.
+"
+            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
 
     def _load_mesh_data(self, filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -742,8 +734,8 @@ class WW3:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as exception:
-            _logger.error("Error loading variable from %s: %s", path, exception)
+        except Exception as e:
+            _logger.error(f"Error loading variable from {path}: {e}")
             if 'ds' in locals():
                 ds.close()
             raise
@@ -803,8 +795,8 @@ class WW3:
                         if not np.issubdtype(t.dtype, np.datetime64):
                              t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as exception:
-                print(f"Warning: Could not read time from {fpath}: {exception}")
+            except Exception as e:
+                print(f"Warning: Could not read time from {fpath}: {e}")
 
         if all_times:
             self._time = np.concatenate(all_times)
@@ -1316,11 +1308,3 @@ class ROMS:
             self._time = np.array([])
 
         return self._time
-lf._time
-_times)
-            self._time.sort()
-        else:
-            self._time = np.array([])
-
-        return self._time
-lf._time
