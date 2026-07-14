@@ -44,7 +44,7 @@ jobs:
         run: pytest --cov=./ --cov-report=xml
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
@@ -92,7 +92,7 @@ jobs:
 
   deploy:
     needs: [build_docs]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'noaa-ocs-modeling/OCSTrack'
     runs-on: ubuntu-latest
 
     permissions:

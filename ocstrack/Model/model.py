@@ -188,7 +188,7 @@ class SCHISM:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 _logger.warning(f"Error reading {fpath}: {e}")
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
@@ -282,7 +282,7 @@ class SCHISM:
 
             return ds_sliced
 
-        except Exception as e:
+        except (OSError, KeyError, ValueError) as e:
             _logger.error(f"Error opening/merging {f_main_path} and {f_zcor_path}: {e}")
             raise
 
@@ -418,15 +418,26 @@ class ADCSWAN:
     def _validate_model_dict(self) -> None:
         """
         Ensure the model_dict contains all required keys.
+
         Raises
         ------
         ValueError
-            If required keys are missing from model_dict
+            If required keys are missing from model_dict, or if an
+            optional ``var_type`` value is not recognised.
         """
-        required_keys = ['startswith', 'var'] # 'var_type' is not required for ADCSWAN
+        required_keys = ['startswith', 'var']
         missing = [k for k in required_keys if k not in self.model_dict]
         if missing:
             raise ValueError(f"Missing keys in model_dict: {missing}")
+
+        # If var_type is supplied, validate it
+        valid_types = ['2D', '3D_Surface', '3D_Profile']
+        var_type = self.model_dict.get('var_type')
+        if var_type is not None and var_type not in valid_types:
+            raise ValueError(
+                f"var_type must be one of {valid_types}, "
+                f"but got '{var_type}'"
+            )
 
     def _load_mesh_data(self, filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -440,7 +451,7 @@ class ADCSWAN:
                 lats = ds['y'].load().values
                 depths = ds['depth'].load().values
             return lons, lats, depths
-        except Exception as e:
+        except (OSError, KeyError) as e:
             _logger.error(f"Failed to load mesh data from {filepath}: {e}")
             return np.array([]), np.array([]), np.array([])
 
@@ -494,7 +505,7 @@ class ADCSWAN:
                     _logger.warning(f"File {fpath} time range ({times[0]} to {times[-1]}) "
                                     f"does not overlap with requested range "
                                     f"({self.start_date} to {self.end_date}).")
-        except Exception as e:
+        except (OSError, KeyError, ValueError) as e:
             _logger.warning(f"Error reading {fpath}: {e}")
             return []
 
@@ -521,7 +532,6 @@ class ADCSWAN:
         """
         _logger.info("Opening model file: %s", path)
         try:
-            # Xarray will open the file, slice, and then load.
             ds = xr.open_dataset(path, drop_variables=['neta','nvel'])
             var = ds[self.model_dict['var']]
 
@@ -537,7 +547,7 @@ class ADCSWAN:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as e:
+        except OSError as e:
             _logger.error(f"Error loading variable from {path}: {e}")
             if 'ds' in locals():
                 ds.close()
@@ -639,14 +649,24 @@ class WW3:
         Ensure the model_dict contains all required keys.
 
         Raises
-        -------
+        ------
         ValueError
-            If required keys are missing from model_dict
+            If required keys are missing from model_dict, or if an
+            optional ``var_type`` value is not recognised.
         """
         required_keys = ['var']
         missing = [k for k in required_keys if k not in self.model_dict]
         if missing:
             raise ValueError(f"Missing keys in model_dict: {missing}")
+
+        # If var_type is supplied, validate it
+        valid_types = ['2D', '3D_Surface', '3D_Profile']
+        var_type = self.model_dict.get('var_type')
+        if var_type is not None and var_type not in valid_types:
+            raise ValueError(
+                f"var_type must be one of {valid_types}, "
+                f"but got '{var_type}'"
+            )
 
     def _select_model_files(self) -> List[str]:
         """
@@ -677,7 +697,7 @@ class WW3:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 _logger.warning(f"Error reading {fpath}: {e}")
                 continue
 
@@ -700,7 +720,7 @@ class WW3:
                 lats = ds['lat'].load().values.squeeze()
                 depths = np.full_like(lons, np.nan)
             return lons, lats, depths
-        except Exception as e:
+        except (OSError, KeyError) as e:
             _logger.error(f"Failed to load mesh data from {filepath}: {e}")
             return np.array([]), np.array([]), np.array([])
 
@@ -734,7 +754,7 @@ class WW3:
             _logger.error(f"Variable '{self.model_dict['var']}' not found in {path}")
             ds.close()
             raise
-        except Exception as e:
+        except OSError as e:
             _logger.error(f"Error loading variable from {path}: {e}")
             if 'ds' in locals():
                 ds.close()
@@ -1160,12 +1180,28 @@ class ROMS:
                     self.grdname = value_str
 
 
-    def _validate_model_dict(self):
-        """Validate the model_dict."""
+    def _validate_model_dict(self) -> None:
+        """
+        Ensure the model_dict contains all required keys.
+
+        Raises
+        ------
+        ValueError
+            If required keys are missing from model_dict, or if
+            ``var_type`` is not a recognised value.
+        """
         required_keys = ['var', 'var_type']
         missing = [k for k in required_keys if k not in self.model_dict]
         if missing:
             raise ValueError(f"Missing keys in model_dict: {missing}")
+
+        valid_types = ['2D', '3D_Surface', '3D_Profile']
+        var_type = self.model_dict['var_type']
+        if var_type not in valid_types:
+            raise ValueError(
+                f"var_type must be one of {valid_types}, "
+                f"but got '{var_type}'"
+            )
 
     def _select_model_files(self):
         """Select model files."""
