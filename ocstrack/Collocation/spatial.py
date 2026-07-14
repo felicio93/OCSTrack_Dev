@@ -138,6 +138,10 @@ class GeocentricSpatialLocator:
         """
         query_points = self._get_query_points(sat_lon, sat_lat, sat_height)
         distances, indices = self.tree.query(query_points, k=k)
+        # Ensure 2D output regardless of k (scipy returns 1D when k=1)
+        if distances.ndim == 1:
+            distances = distances[:, np.newaxis]
+            indices = indices[:, np.newaxis]
         return distances, indices
 
     def query_radius(self,

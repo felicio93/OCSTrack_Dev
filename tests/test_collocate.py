@@ -93,14 +93,14 @@ class TestCollocateInit:
         model = _make_mock_model_2d()
         obs = _make_mock_sat_obs()
 
-        with pytest.warns(None):  # Should log a warning, not raise
-            col = Collocate(
-                model_run=model,
-                observation=obs,
-                n_nearest=4,
-                search_radius=50_000,
-                time_buffer=np.timedelta64(3, "h"),
-            )
+        # Should log a warning internally but not raise an exception
+        col = Collocate(
+            model_run=model,
+            observation=obs,
+            n_nearest=4,
+            search_radius=50_000,
+            time_buffer=np.timedelta64(3, "h"),
+        )
         assert col.n_nearest is None
         assert col.search_radius == 50_000
 
