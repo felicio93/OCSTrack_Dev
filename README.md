@@ -32,6 +32,27 @@ To install the latest development version directly from this repository:
 pip install git+https://github.com/noaa-ocs-modeling/OCSTrack.git
 ```
 
+### Optional dependencies
+
+OCSTrack has two sets of optional extras:
+
+| Extra | Packages installed | When you need it |
+|---|---|---|
+| `gsw` | `gsw` | Accurate pressure-to-depth conversion for Argo 3D collocation. Without it, a simple linear approximation (`dbar × -1.0197`) is used instead. |
+| `geo` | `shapely`, `geopandas` | Required only if you use `crop_by_shape()` to mask satellite data with a polygon or shapefile. |
+| `all` | all of the above | Install everything at once. |
+
+```bash
+# Accurate depth conversion for Argo data
+pip install "ocstrack[gsw]"
+
+# Shapefile/polygon cropping support
+pip install "ocstrack[geo]"
+
+# Everything
+pip install "ocstrack[all]"
+```
+
 ## Quick Start
 
 Here is a minimal example of how to collocate satellite altimetry data with a SCHISM model run.

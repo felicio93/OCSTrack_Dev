@@ -45,3 +45,5 @@ nav:
     - Model: model.md
     - Observation: observation.md
     - Utils: utils.md
+  - Contributing:
+    - Adding Models & Observations: contributing.md

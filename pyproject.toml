@@ -37,6 +37,18 @@ dev = [
     "pylint",
     "pytest-cov",
 ]
+gsw = [
+    "gsw",
+]
+geo = [
+    "shapely",
+    "geopandas",
+]
+all = [
+    "gsw",
+    "shapely",
+    "geopandas",
+]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"

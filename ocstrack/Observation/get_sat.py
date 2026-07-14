@@ -130,10 +130,127 @@ def crop_by_box(dataset: xr.Dataset,
 
     return cropped
 
-def crop_by_shape():
+def crop_by_shape(dataset: xr.Dataset,
+                  shape,
+                  lat_var: str = 'lat',
+                  lon_var: str = 'lon') -> xr.Dataset:
     """
-    To be implemented
+    Crop an xarray Dataset to the observations that fall within a given shape.
+
+    Accepts a shapefile path, a GeoJSON-like dict, or any shapely
+    ``Polygon`` / ``MultiPolygon`` object.
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        Satellite dataset containing ``lat`` and ``lon`` 1-D variables along
+        the ``time`` dimension.
+    shape : str, dict, or shapely geometry
+        The bounding shape. Accepted forms:
+
+        * **str** – path to a shapefile (``.shp``). The union of all features
+          is used. Requires ``geopandas``.
+        * **dict** – a GeoJSON-like mapping with a ``"geometry"`` key *or* a
+          bare GeoJSON geometry dict (``{"type": "Polygon", "coordinates":
+          ...}``). Requires ``shapely``.
+        * **shapely Polygon / MultiPolygon** – used directly.
+
+    lat_var : str, optional
+        Name of the latitude variable in *dataset* (default ``'lat'``).
+    lon_var : str, optional
+        Name of the longitude variable in *dataset* (default ``'lon'``).
+
+    Returns
+    -------
+    xr.Dataset
+        A subset of *dataset* containing only the observations whose
+        (lon, lat) coordinates fall within the supplied shape.
+
+    Raises
+    ------
+    ImportError
+        If the required ``shapely`` or ``geopandas`` library is not installed.
+    ValueError
+        If *dataset* does not contain the expected lat/lon variables, or if
+        *shape* cannot be interpreted.
+
+    Examples
+    --------
+    >>> # Using a shapefile
+    >>> cropped = crop_by_shape(ds, "/path/to/region.shp")
+
+    >>> # Using a shapely polygon
+    >>> from shapely.geometry import box
+    >>> bbox_polygon = box(-80, 30, -70, 40)
+    >>> cropped = crop_by_shape(ds, bbox_polygon)
+
+    >>> # Using a GeoJSON dict
+    >>> geojson = {"type": "Polygon", "coordinates": [[[-80,30],[-70,30],[-70,40],[-80,40],[-80,30]]]}
+    >>> cropped = crop_by_shape(ds, geojson)
     """
+    try:
+        from shapely.geometry import shape as shapely_shape, Point, MultiPolygon
+        from shapely.ops import unary_union
+    except ImportError as exc:
+        raise ImportError(
+            "crop_by_shape requires the 'shapely' package. "
+            "Install it with: pip install shapely"
+        ) from exc
+
+    if lat_var not in dataset or lon_var not in dataset:
+        raise ValueError(
+            f"Dataset does not contain '{lat_var}' or '{lon_var}' variables."
+        )
+
+    # --- Resolve the input to a single shapely geometry ---
+    if isinstance(shape, str):
+        # Treat as a path to a shapefile
+        try:
+            import geopandas as gpd
+        except ImportError as exc:
+            raise ImportError(
+                "Passing a shapefile path to crop_by_shape requires 'geopandas'. "
+                "Install it with: pip install geopandas"
+            ) from exc
+        gdf = gpd.read_file(shape)
+        geom = unary_union(gdf.geometry)
+
+    elif isinstance(shape, dict):
+        # GeoJSON feature or bare geometry dict
+        if "geometry" in shape:
+            geom = shapely_shape(shape["geometry"])
+        elif "type" in shape and "coordinates" in shape:
+            geom = shapely_shape(shape)
+        else:
+            raise ValueError(
+                "dict input must be a GeoJSON feature (with a 'geometry' key) "
+                "or a bare GeoJSON geometry dict (with 'type' and 'coordinates')."
+            )
+
+    else:
+        # Assume it is already a shapely geometry
+        geom = shape
+
+    # Validate that we ended up with something usable
+    if not hasattr(geom, 'contains'):
+        raise ValueError(
+            f"Could not interpret 'shape' as a valid geometry. Got: {type(shape)}"
+        )
+
+    # --- Vectorised point-in-polygon test ---
+    lats = dataset[lat_var].values
+    lons = dataset[lon_var].values
+
+    mask = np.array(
+        [geom.contains(Point(lo, la)) for lo, la in zip(lons, lats)],
+        dtype=bool,
+    )
+
+    # Use the first dimension that contains the lat/lon data
+    dim = dataset[lat_var].dims[0]
+    indices = np.where(mask)[0]
+
+    return dataset.isel({dim: indices})
 
 def crop_sat_data(file_paths: List[str],
                   cropped_dir: str,
@@ -179,7 +296,7 @@ def crop_sat_data(file_paths: List[str],
                 else:
                     _logger.warning(f"Skipping empty cropped dataset: \
                                     {file_path}")
-        except Exception as e:
+        except (OSError, ValueError) as e:
             _logger.warning(f"Failed to crop \
                             {file_path}: {type(e).__name__} - {e}")
 
@@ -213,7 +330,7 @@ def concat_sat_data(datasets: List[xr.Dataset],
         concat_ds.to_netcdf(output_path)
         _logger.info(f"Concatenated dataset saved to {output_path}")
         return concat_ds
-    except Exception as e:
+    except (ValueError, OSError) as e:
         _logger.warning(f"Failed to concatenate datasets: \
                         {type(e).__name__} - {e}")
         return None
@@ -277,7 +394,7 @@ def get_per_sat(start_date: str,
                 with xr.open_dataset(file_path) as ds:
                     ds.load()
                     datasets_to_concat.append(ds)
-            except Exception as e:
+            except OSError as e:
                 _logger.warning(f"Failed to load \
                                 {file_path}: {type(e).__name__} - {e}")
 
@@ -351,7 +468,7 @@ def get_multi_sat(start_date: str,
             _logger.info(f"Concatenated multisat dataset saved to \
                          {multisat_path}")
             return all_sat_ds
-        except Exception as exception:
+        except (ValueError, OSError) as exception:
             _logger.warning(
                 "Failed to concatenate all satellite datasets: %s - %s",
                 type(exception).__name__,

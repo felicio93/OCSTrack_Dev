@@ -163,7 +163,7 @@ class Collocate:
                                 len(times),
                             )
     
-                    except Exception as e:
+                    except (OSError, KeyError, ValueError) as e:
                         _logger.warning(f"Error reading {example_file} for time buffer: {e}")
                         continue
 
@@ -380,7 +380,7 @@ class Collocate:
             try:
                 # Load just this one file's data (temp + zcor)
                 m_data = self.model.load_3d_file_pair(f_main_path)
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 _logger.warning(f"Skipping file {f_main_path} due to load error: {e}")
                 continue
 
