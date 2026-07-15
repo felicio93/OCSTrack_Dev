@@ -6,10 +6,10 @@ from ocstrack.Collocation.collocate import Collocate
 from ocstrack.utils import convert_longitude
 
 
-# 1. Download Satellite Data
+# 1. Download Satellite Data (CoastWatch / NOAA STAR)
 #    Specify your desired date range, list of satellites, output directory, and geographical bounding box.
 print("get_sat begin")
-get_sat.get_multi_sat(start_date="2019-07-30",
+get_sat.get_multi_sat_coastwatch(start_date="2019-07-30",
                       end_date="2019-08-04",
                       sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral','swot','sentinel6a'],
                       output_dir=r"Your/Path/where to save the sat altimetry/Here/",
@@ -29,7 +29,8 @@ output_path =  r"Your/Path/Here/schism_collocated.nc",
 s_time,e_time = "2019-07-30", "2019-08-03"
 
 # 3. Load Satellite Data
-#    Initialize the SatelliteData object with your satellite data file.
+#    SatelliteData auto-detects the data source (CoastWatch or ESA CCI).
+#    For CoastWatch files, sat_data.data_source will be 'coastwatch'.
 sat_data = SatelliteData(sat_path)
 #    It's crucial to ensure longitude conventions match between satellite and model data.
 #    Use convert_longitude if needed (mode=1 for converting to 0-360 degrees).

@@ -336,7 +336,7 @@ def concat_sat_data(datasets: List[xr.Dataset],
         return None
 
 
-def get_per_sat(start_date: str,
+def get_per_sat_coastwatch(start_date: str,
          end_date: str,
          sat: str,
          output_dir: Union[str, os.PathLike],
@@ -414,7 +414,7 @@ def get_per_sat(start_date: str,
 
     return final_dataset
 
-def get_multi_sat(start_date: str,
+def get_multi_sat_coastwatch(start_date: str,
          end_date: str,
          sat_list: List,
          output_dir: Union[str, os.PathLike],
@@ -445,7 +445,7 @@ def get_multi_sat(start_date: str,
 
     all_sat = []
     for sat in sat_list:
-        concat_ds = get_per_sat(start_date,
+        concat_ds = get_per_sat_coastwatch(start_date,
                             end_date,
                             sat,
                             output_dir,

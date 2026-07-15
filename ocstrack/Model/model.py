@@ -192,10 +192,9 @@ class SCHISM:
                 _logger.warning(f"Error reading {fpath}: {e}")
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
-            if not selected:
-                _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
-                f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
-            return selected
+        if not selected:
+            _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
+            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
 
     def load_variable(self, path: str) -> xr.DataArray:
@@ -705,7 +704,6 @@ class WW3:
             _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
             f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
-        return selected
 
     def _load_mesh_data(self, filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -937,7 +935,7 @@ def stretching(Vstretching, theta_s, theta_b, hc, N, kgrid):
             exp_b = theta_b   # bottom  stretching exponent
             alpha = 3      # scale factor for all hyperbolic functions
             Cbot  = np.log(np.cosh(alpha*(s+1.0)**exp_b))/np.log(np.cosh(alpha))-1.0
-            Csur  = -np.log(cosh(alpha*abs(s)**exp_s))/log(cosh(alpha))
+            Csur  = -np.log(np.cosh(alpha*abs(s)**exp_s))/np.log(np.cosh(alpha))
             weight= (1-np.tanh( alpha*(s+0.5)))/2.0
             C     = weight*Cbot+(1.0-weight)*Csur
         else:

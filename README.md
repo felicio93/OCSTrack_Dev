@@ -12,7 +12,7 @@
 
 ## Key Features
 
-- **Automated Data Fetching**: Downloads satellite altimetry and Argo float data from public repositories.
+- **Automated Data Fetching**: Downloads satellite altimetry data from two sources — CoastWatch (NOAA STAR) and ESA CCI Sea State (IFREMER) — and Argo float data from IFREMER.
 - **Model Support**: Natively handles outputs from SCHISM (and WWM), ADCIRC, SWAN, and WW3 models.
 - **Flexible Collocation**: Performs temporal and spatial collocation for both 2D surface tracks and 3D profiles.
 - **Efficient & Scalable**: Uses `xarray` and `dask` for efficient, out-of-core computations on large datasets.
@@ -53,35 +53,80 @@ pip install "ocstrack[geo]"
 pip install "ocstrack[all]"
 ```
 
-## Quick Start
+## Satellite Data Sources
 
-Here is a minimal example of how to collocate satellite altimetry data with a SCHISM model run.
+OCSTrack supports two satellite altimetry data sources. Both are handled by the same `SatelliteData` class, which auto-detects the format.
+
+### CoastWatch (NOAA STAR)
+
+Daily merged NetCDF files from the NOAA STAR CoastWatch program. No credentials required.
 
 ```python
-from ocstrack import Collocate
-from ocstrack.Model import SCHISM
-from ocstrack.Observation import Satellite
+from ocstrack.Observation.get_sat import get_multi_sat_coastwatch
 
-# 1. Define time range and region of interest
-start_date = '2021-05-01'
-end_date = '2021-05-05'
-bbox = [-76, 34, -72, 38]  # [lon_min, lat_min, lon_max, lat_max]
+get_multi_sat_coastwatch(
+    start_date="2023-01-16", end_date="2023-01-31",
+    sat_list=['sentinel3a', 'sentinel3b', 'jason3'],
+    output_dir="./sat_data/",
+    lat_min=18, lat_max=31, lon_min=-98, lon_max=-80,
+)
+```
 
-# 2. Initialize the Model object
-# This assumes a SCHISM run directory with standard outputs
-schism_run_dir = '/path/to/your/schism/run/'
-model = SCHISM(schism_run_dir, start_date=start_date, end_date=end_date)
+**Limitations:** Old data may be deleted without notice; SWH is capped at 8 m.
 
-# 3. Initialize the Observation object
-sat_name = 'sentinel-3a' # Example satellite
-observation = Satellite(sat_name, start_date=start_date, end_date=end_date, bbox=bbox)
+### ESA CCI Sea State v5 (IFREMER)
 
-# 4. Create a Collocation object and run the analysis
-collocator = Collocate(model, observation)
-collocated_dataset = collocator.run(output_path='collocated_data.nc')
+Along-track per-pass files from the ESA Climate Change Initiative Sea State project, hosted on the IFREMER FTP server. Suitable for extreme wave analysis (no SWH cap).
 
+**Credentials required.** Register at [https://eftp.ifremer.fr](https://eftp.ifremer.fr) to obtain a free username and password. Store them as environment variables:
+
+```bash
+export CCI_FTP_USER="your_username"
+export CCI_FTP_PASS="your_password"
+```
+
+```python
+import os
+from ocstrack.Observation.get_sat_cci import get_multi_sat_cci
+
+get_multi_sat_cci(
+    start_date="2023-01-16", end_date="2023-01-31",
+    sat_list=['jason-3', 'sentinel-3a', 'sentinel-3b'],
+    output_dir="./cci_sat_data/",
+    ftp_user=os.environ["CCI_FTP_USER"],
+    ftp_pass=os.environ["CCI_FTP_PASS"],
+    lat_min=18, lat_max=31, lon_min=-98, lon_max=-80,
+)
+```
+
+**Advantages over CoastWatch:** Stable long-term archive; no SWH cap; includes `swh_with_8m_offset_correction`, `swh_quality_level`, `swh_uncertainty`, `bathymetry`, and `distance_to_coast`.
+
+## Quick Start
+
+Here is a minimal example of how to collocate satellite altimetry data with a WW3 model run.
+
+```python
+import numpy as np
+from ocstrack.Model.model import WW3
+from ocstrack.Observation.satellite import SatelliteData
+from ocstrack.Collocation.collocate import Collocate
+
+# Load satellite data — SatelliteData auto-detects CoastWatch or CCI format
+sat_data = SatelliteData("/path/to/merged_satellite_data.nc")
+print(sat_data.data_source)  # 'coastwatch' or 'cci'
+
+# Load WW3 model
+model_run = WW3(
+    rundir="/path/to/ww3/run/",
+    model_dict={"var": "hs"},
+    start_date=np.datetime64("2023-01-16"),
+    end_date=np.datetime64("2023-01-31"),
+)
+
+# Collocate
+coll = Collocate(model_run=model_run, observation=sat_data, n_nearest=3)
+ds_coll = coll.run(output_path="collocated.nc")
 print("Collocation complete!")
-print(collocated_dataset)
 ```
 
 ## Documentation
