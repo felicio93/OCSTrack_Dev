@@ -261,6 +261,17 @@ class Collocate:
         if 'source' not in self.obs.ds:
             results.pop("source_obs", None)
 
+        # Detect any extra 1D observation variables (e.g. CCI-specific fields)
+        # and carry them through to the output automatically
+        core_obs_vars = {'time', 'lat', 'lon', 'swh', 'sla', 'source'}
+        extra_obs_vars = [
+            v for v in self.obs.ds.data_vars
+            if v not in core_obs_vars
+            and self.obs.ds[v].dims == (self.obs_time_coord,)
+        ]
+        for v in extra_obs_vars:
+            results[f"obs_{v}"] = []
+
         include_coast = self.dist_coast is not None
         if include_coast:
             results["dist_coast"] = []
@@ -309,6 +320,11 @@ class Collocate:
                 results[f"obs_{obs_var_name}"].append(obs_sub[obs_var_name].values)
             if "obs_sla" in results:
                 results["obs_sla"].append(obs_sub["sla"].values)
+
+            # Append extra CCI / source-specific variables
+            for v in extra_obs_vars:
+                if v in obs_sub:
+                    results[f"obs_{v}"].append(obs_sub[v].values)
 
             results[f"model_{model_var_name}"].append(spatial["model_var"])
             results["model_dpt"].append(spatial["model_dpt"])
