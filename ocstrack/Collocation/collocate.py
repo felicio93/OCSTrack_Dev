@@ -705,6 +705,7 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
+        model_var_name = self.model.model_dict['var']
         obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
@@ -817,6 +818,7 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
+        model_var_name = self.model.model_dict['var']
         obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
