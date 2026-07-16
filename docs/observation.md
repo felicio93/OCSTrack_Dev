@@ -43,13 +43,13 @@ Daily merged NetCDF files from the NOAA STAR CoastWatch program. No credentials 
 !!! tip
     The main functions to use here are `get_per_sat_coastwatch` for a single satellite and `get_multi_sat_coastwatch` for multiple satellites.
 
-::: ocstrack.Observation.get_sat.get_per_sat_coastwatch
-::: ocstrack.Observation.get_sat.get_multi_sat_coastwatch
-::: ocstrack.Observation.get_sat.download_sat_data
-::: ocstrack.Observation.get_sat.crop_sat_data
-::: ocstrack.Observation.get_sat.concat_sat_data
-::: ocstrack.Observation.get_sat.generate_daily_dates
-::: ocstrack.Observation.get_sat.crop_by_box
+::: ocstrack.Observation.get_sat_coastwatch.get_per_sat_coastwatch
+::: ocstrack.Observation.get_sat_coastwatch.get_multi_sat_coastwatch
+::: ocstrack.Observation.get_sat_coastwatch.download_sat_data
+::: ocstrack.Observation.get_sat_coastwatch.crop_sat_data
+::: ocstrack.Observation.get_sat_coastwatch.concat_sat_data
+::: ocstrack.Observation.get_sat_coastwatch.generate_daily_dates
+::: ocstrack.Observation.get_sat_coastwatch.crop_by_box
 
 ### Satellite Data Acquisition — ESA CCI Sea State v5 (IFREMER)
 

@@ -62,7 +62,7 @@ OCSTrack supports two satellite altimetry data sources. Both are handled by the 
 Daily merged NetCDF files from the NOAA STAR CoastWatch program. No credentials required.
 
 ```python
-from ocstrack.Observation.get_sat import get_multi_sat_coastwatch
+from ocstrack.Observation.get_sat_coastwatch import get_multi_sat_coastwatch
 
 get_multi_sat_coastwatch(
     start_date="2023-01-16", end_date="2023-01-31",

@@ -1,7 +1,7 @@
 import numpy as np
 from ocstrack.Model.model import ADCSWAN
 from ocstrack.Observation.satellite import SatelliteData
-from ocstrack.Observation import get_sat
+from ocstrack.Observation import get_sat_coastwatch
 from ocstrack.Collocation.collocate import Collocate
 # from ocstrack.utils import convert_longitude
 
@@ -9,7 +9,7 @@ from ocstrack.Collocation.collocate import Collocate
 # 1. Download Satellite Data (CoastWatch / NOAA STAR)
 #   Specify your desired date range, list of satellites, output directory, and geographical bounding box.
 print("get_sat begin")
-get_sat.get_multi_sat_coastwatch(start_date="2020-12-13",
+get_sat_coastwatch.get_multi_sat_coastwatch(start_date="2020-12-13",
                       end_date="2020-12-31",
                       sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral','swot','sentinel6a'],
                       output_dir=r"Your/Path/where to save the sat altimetry/Here/",

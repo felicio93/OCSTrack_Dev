@@ -41,7 +41,7 @@ import urllib.request
 import xarray as xr
 from tqdm import tqdm
 
-from .get_sat import crop_by_box, crop_by_shape
+from .get_sat_coastwatch import crop_by_box, crop_by_shape
 from .urls import (
     CCI_ALTIMETERS,
     CCI_FTP_BASE_PATH,
@@ -49,6 +49,7 @@ from .urls import (
     CCI_FTP_VERSION,
     CCI_KEEP_VARS,
     CCI_SARS,
+    resolve_sat_key,
 )
 
 _logger = logging.getLogger(__name__)
@@ -343,7 +344,7 @@ def crop_cci_data_by_shape(
     cropped_dir : str
         Directory to save cropped files.
     shape : str, dict, or shapely geometry
-        Bounding shape. See :func:`ocstrack.Observation.get_sat.crop_by_shape`
+        Bounding shape. See :func:`ocstrack.Observation.get_sat_coastwatch.crop_by_shape`
         for accepted formats.
     keep_vars : list of str, optional
         Variables to retain. Defaults to ``CCI_KEEP_VARS``.
@@ -503,14 +504,9 @@ def get_per_sat_cci(
     """
     _check_credentials(ftp_user, ftp_pass)
 
-    # Resolve FTP directory name
+    # Resolve FTP directory name (punctuation/case-insensitive lookup)
     sat_lookup: Dict[str, str] = {**CCI_ALTIMETERS, **CCI_SARS}
-    if sat not in sat_lookup:
-        valid = sorted(sat_lookup.keys())
-        raise ValueError(
-            f"Unknown CCI satellite key: '{sat}'.\n"
-            f"Valid keys are: {valid}"
-        )
+    sat = resolve_sat_key(sat, sat_lookup)
     sat_ftp_name = sat_lookup[sat]
 
     sat_dir = os.path.join(output_dir, sat)

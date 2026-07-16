@@ -1,5 +1,74 @@
 """Satellite data URLS"""
 
+import re
+
+
+def _canonical_sat_key(key: str) -> str:
+    """
+    Canonicalize a satellite key by stripping all non-alphanumeric
+    characters and lower-casing.
+
+    This lets users pass any punctuation/case variant of a satellite name
+    and still match the correct entry. For example, ``'jason-3'``,
+    ``'jason3'``, ``'Jason_3'`` and ``'JASON 3'`` all canonicalize to
+    ``'jason3'``.
+
+    Parameters
+    ----------
+    key : str
+        A user-supplied satellite key.
+
+    Returns
+    -------
+    str
+        The canonicalized key (alphanumeric, lower-case).
+    """
+    return re.sub(r'[^0-9a-z]', '', str(key).lower())
+
+
+def resolve_sat_key(key: str, lookup: dict) -> str:
+    """
+    Resolve a user-supplied satellite key against a lookup dictionary,
+    tolerating punctuation and case differences.
+
+    An exact match is tried first; failing that, both the input and the
+    dictionary keys are canonicalized (see :func:`_canonical_sat_key`) and
+    compared. This means CoastWatch-style keys (e.g. ``'jason3'``) and
+    CCI-style keys (e.g. ``'jason-3'``) are interchangeable for the caller.
+
+    Parameters
+    ----------
+    key : str
+        The user-supplied satellite key.
+    lookup : dict
+        The mapping of valid satellite keys (e.g. ``URL_TEMPLATES`` for
+        CoastWatch or ``CCI_ALTIMETERS`` for CCI).
+
+    Returns
+    -------
+    str
+        The matching key *as it appears in* ``lookup``.
+
+    Raises
+    ------
+    ValueError
+        If no exact or canonical match is found.
+    """
+    if key in lookup:
+        return key
+
+    canon = _canonical_sat_key(key)
+    for valid_key in lookup:
+        if _canonical_sat_key(valid_key) == canon:
+            return valid_key
+
+    valid = sorted(lookup.keys())
+    raise ValueError(
+        f"Unknown satellite key: '{key}'.\n"
+        f"Valid keys (any punctuation/case variant is accepted): {valid}"
+    )
+
+
 URL_TEMPLATES = {
     'sentinel3a': 'https://www.star.nesdis.noaa.gov/data/pub0010/lsa/johnk/coastwatch/3a/3a_',
     'sentinel3b': 'https://www.star.nesdis.noaa.gov/data/pub0010/lsa/johnk/coastwatch/3b/3b_',

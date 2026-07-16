@@ -21,6 +21,12 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
+# Mapping from model variable names to their corresponding observation
+# variable names. Used to align model output with satellite/Argo fields.
+MODEL_TO_OBS_VAR = {'sigWaveHeight': 'swh'}
+# Default observation variable when a model variable is not in the map above.
+DEFAULT_OBS_VAR = 'swh'
+
 
 class Collocate:
     """
@@ -242,8 +248,7 @@ class Collocate:
         # Make variable names generic
         model_var_name = self.model.model_dict['var']
         # Map model var to obs var (assuming SatelliteData)
-        obs_var_map = {'sigWaveHeight': 'swh'}
-        obs_var_name = obs_var_map.get(model_var_name, 'swh') # Default to 'swh'
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         # Generic results dictionary
         results = {k: [] for k in [
@@ -700,9 +705,7 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
-        obs_var_map = {'sigWaveHeight': 'swh'}
-        model_var_name = self.model.model_dict['var']
-        obs_var_name = obs_var_map.get(model_var_name, 'swh')
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
         lats = obs_sub["lat"].values
@@ -814,9 +817,7 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
-        obs_var_map = {'sigWaveHeight': 'swh'}
-        model_var_name = self.model.model_dict['var']
-        obs_var_name = obs_var_map.get(model_var_name, 'swh')
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
         lats = obs_sub["lat"].values

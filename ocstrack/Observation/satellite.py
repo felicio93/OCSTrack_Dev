@@ -4,7 +4,7 @@ This module provides a unified ``SatelliteData`` class that transparently
 handles files from two different data sources:
 
 - **CoastWatch** (NOAA STAR): daily merged files downloaded via
-  :mod:`ocstrack.Observation.get_sat`. These files contain ``swh``, ``sla``,
+  :mod:`ocstrack.Observation.get_sat_coastwatch`. These files contain ``swh``, ``sla``,
   and ``source`` variables.
 
 - **ESA CCI Sea State v5** (IFREMER): per-pass files downloaded and merged
