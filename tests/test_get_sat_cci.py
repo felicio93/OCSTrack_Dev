@@ -45,10 +45,12 @@ def _make_cci_pass(path, n=10, lat0=30.0, lat1=40.0, lon0=-80.0, lon1=-70.0,
             "distance_to_coast": ("time", np.random.rand(n) * 200_000),
             # A variable that should be dropped by _subset_vars
             "some_other_var": ("time", np.random.rand(n)),
+        },
+        coords={
+            "time": times,
             "lat": ("time", np.linspace(lat0, lat1, n)),
             "lon": ("time", np.linspace(lon0, lon1, n)),
         },
-        coords={"time": times},
     )
     ds.attrs["title"] = "ESA CCI Sea State L2P"
     ds.to_netcdf(path)
@@ -138,8 +140,8 @@ class TestCropCCIData:
         )
         assert len(result) == 1
         ds = result[0]
-        assert float(ds.lat.min()) >= 33
-        assert float(ds.lat.max()) <= 37
+        assert float(ds["lat"].min()) >= 33
+        assert float(ds["lat"].max()) <= 37
         # Subsetting applied (extra var dropped)
         assert "some_other_var" not in ds
         # A cropped file was written
