@@ -7,11 +7,12 @@ import time
 from datetime import datetime, timedelta
 from typing import Union, Optional, List
 
+import numpy as np
 import requests
 import xarray as xr
 from tqdm import tqdm
 
-from .urls import URL_TEMPLATES
+from .urls import URL_TEMPLATES, resolve_sat_key
 
 
 _logger = logging.getLogger(__name__)
@@ -287,18 +288,20 @@ def crop_sat_data(file_paths: List[str],
                 ds.load()
                 cropped = crop_by_box(ds, lat_min, lat_max, lon_min, lon_max)
                 if cropped.dims and all(size > 0 for size in cropped.sizes.values()):
-                    out_path = os.path.join(cropped_dir,
-                                            f"cropped_\
-                                                {os.path.basename(file_path)}")
+                    out_path = os.path.join(
+                        cropped_dir, f"cropped_{os.path.basename(file_path)}"
+                    )
                     cropped.to_netcdf(out_path)
                     _logger.info(f"Saved {out_path}")
                     cropped_datasets.append(cropped)
                 else:
-                    _logger.warning(f"Skipping empty cropped dataset: \
-                                    {file_path}")
+                    _logger.warning(
+                        "Skipping empty cropped dataset: %s", file_path
+                    )
         except (OSError, ValueError) as e:
-            _logger.warning(f"Failed to crop \
-                            {file_path}: {type(e).__name__} - {e}")
+            _logger.warning(
+                "Failed to crop %s: %s - %s", file_path, type(e).__name__, e
+            )
 
     return cropped_datasets
 
@@ -336,7 +339,7 @@ def concat_sat_data(datasets: List[xr.Dataset],
         return None
 
 
-def get_per_sat(start_date: str,
+def get_per_sat_coastwatch(start_date: str,
          end_date: str,
          sat: str,
          output_dir: Union[str, os.PathLike],
@@ -354,7 +357,9 @@ def get_per_sat(start_date: str,
     ----------
         start_date: Start date in 'YYYY-MM-DD'
         end_date: End date in 'YYYY-MM-DD'
-        sat: Satellite key for URL_TEMPLATES
+        sat: Satellite key for URL_TEMPLATES. Punctuation/case-insensitive
+            (e.g. 'jason3', 'jason-3', 'Jason_3' all resolve to the same
+            satellite).
         output_dir: Directory to save files
         lat_min, lat_max, lon_min, lon_max: Optional cropping bounds
         concat: Save a single concatenated output
@@ -365,10 +370,19 @@ def get_per_sat(start_date: str,
     ----------
         xarray.Dataset if concatenated, otherwise None
     """
-    try:
-        url_template = URL_TEMPLATES[sat]
-    except KeyError:
-        raise ValueError(f"Unknown satellite key: {sat}")
+    sat = resolve_sat_key(sat, URL_TEMPLATES)
+    url_template = URL_TEMPLATES[sat]
+
+    # CoastWatch (NOAA STAR) altimetry prior to 2020 has been deleted from the
+    # server and is no longer retrievable. Warn the user and point to CCI.
+    if int(start_date[:4]) < 2020:
+        _logger.warning(
+            "CoastWatch data prior to 2020 has been deleted from the NOAA STAR "
+            "server and is no longer retrievable (requested start_date=%s). "
+            "For earlier periods, use the ESA CCI Sea State (IFREMER) source "
+            "instead (ocstrack.Observation.get_sat_cci).",
+            start_date,
+        )
 
     output_dir = os.path.join(output_dir, sat)
     raw_dir = os.path.join(output_dir, "raw")
@@ -414,7 +428,7 @@ def get_per_sat(start_date: str,
 
     return final_dataset
 
-def get_multi_sat(start_date: str,
+def get_multi_sat_coastwatch(start_date: str,
          end_date: str,
          sat_list: List,
          output_dir: Union[str, os.PathLike],
@@ -445,7 +459,7 @@ def get_multi_sat(start_date: str,
 
     all_sat = []
     for sat in sat_list:
-        concat_ds = get_per_sat(start_date,
+        concat_ds = get_per_sat_coastwatch(start_date,
                             end_date,
                             sat,
                             output_dir,

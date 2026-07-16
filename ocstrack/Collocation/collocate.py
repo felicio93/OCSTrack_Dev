@@ -21,6 +21,12 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
+# Mapping from model variable names to their corresponding observation
+# variable names. Used to align model output with satellite/Argo fields.
+MODEL_TO_OBS_VAR = {'sigWaveHeight': 'swh'}
+# Default observation variable when a model variable is not in the map above.
+DEFAULT_OBS_VAR = 'swh'
+
 
 class Collocate:
     """
@@ -242,8 +248,7 @@ class Collocate:
         # Make variable names generic
         model_var_name = self.model.model_dict['var']
         # Map model var to obs var (assuming SatelliteData)
-        obs_var_map = {'sigWaveHeight': 'swh'}
-        obs_var_name = obs_var_map.get(model_var_name, 'swh') # Default to 'swh'
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         # Generic results dictionary
         results = {k: [] for k in [
@@ -260,6 +265,17 @@ class Collocate:
             results.pop("obs_sla", None)
         if 'source' not in self.obs.ds:
             results.pop("source_obs", None)
+
+        # Detect any extra 1D observation variables (e.g. CCI-specific fields)
+        # and carry them through to the output automatically
+        core_obs_vars = {'time', 'lat', 'lon', 'swh', 'sla', 'source'}
+        extra_obs_vars = [
+            v for v in self.obs.ds.data_vars
+            if v not in core_obs_vars
+            and self.obs.ds[v].dims == (self.obs_time_coord,)
+        ]
+        for v in extra_obs_vars:
+            results[f"obs_{v}"] = []
 
         include_coast = self.dist_coast is not None
         if include_coast:
@@ -309,6 +325,11 @@ class Collocate:
                 results[f"obs_{obs_var_name}"].append(obs_sub[obs_var_name].values)
             if "obs_sla" in results:
                 results["obs_sla"].append(obs_sub["sla"].values)
+
+            # Append extra CCI / source-specific variables
+            for v in extra_obs_vars:
+                if v in obs_sub:
+                    results[f"obs_{v}"].append(obs_sub[v].values)
 
             results[f"model_{model_var_name}"].append(spatial["model_var"])
             results["model_dpt"].append(spatial["model_dpt"])
@@ -684,9 +705,8 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
-        obs_var_map = {'sigWaveHeight': 'swh'}
         model_var_name = self.model.model_dict['var']
-        obs_var_name = obs_var_map.get(model_var_name, 'swh')
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
         lats = obs_sub["lat"].values
@@ -798,9 +818,8 @@ class Collocate:
             Dictionary containing 2D collocated arrays (e.g., "model_var", "dist_deltas").
         """
 
-        obs_var_map = {'sigWaveHeight': 'swh'}
         model_var_name = self.model.model_dict['var']
-        obs_var_name = obs_var_map.get(model_var_name, 'swh')
+        obs_var_name = MODEL_TO_OBS_VAR.get(model_var_name, DEFAULT_OBS_VAR)
 
         lons = obs_sub["lon"].values
         lats = obs_sub["lat"].values

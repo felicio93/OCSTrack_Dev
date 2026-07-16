@@ -25,8 +25,7 @@ def get_max_neighbors(result_list):
     if not result_list:
         return 1
 
-    # Filter for valid arrays
-        valid_arrs = []
+    valid_arrs = []
     for arr in result_list:
         if hasattr(arr, 'ndim') and arr.ndim == 2 and arr.size > 0:
             valid_arrs.append(arr)
@@ -144,6 +143,20 @@ def make_collocated_nc_2d(results: dict,
         data_vars["source_obs"] = (["time"], np.concatenate(results["source_obs"]))
     if "dist_coast" in results:
         data_vars["dist_coast"] = (["time"], np.concatenate(results["dist_coast"]))
+
+    # Add any extra observation variables (e.g. CCI-specific fields)
+    known_keys = {
+        "time_obs", "lat_obs", "lon_obs", "time_deltas",
+        "bias_raw", "bias_weighted", model_weighted_key,
+        obs_var_key, "obs_sla", "source_obs", "dist_coast",
+        model_var_key, "model_dpt", "dist_deltas", "node_idx",
+    }
+    for key, val in results.items():
+        if key not in known_keys and key.startswith("obs_") and val:
+            try:
+                data_vars[key] = (["time"], np.concatenate(val))
+            except (ValueError, TypeError) as e:
+                _logger.warning("Could not write extra obs variable '%s': %s", key, e)
 
     # Pad and concatenate 2D arrays
     data_vars[model_var_key] = (["time", "nearest_nodes"],
