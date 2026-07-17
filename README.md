@@ -153,6 +153,11 @@ If you use OCSTrack for 2D collocation with satellite altimetry, please cite:
 
 Cassalho, F., A. L. Kurapov, S. Moghimi, S. M. Durski, J. Y. Zhang, A. Abdolali, et al. "Tidal modulation of waves around the Aleutian Islands." *Journal of Geophysical Research: Oceans* 131 (2026): e2025JC023780. https://doi.org/10.1029/2025JC023780.
 
+## Contributors
+
+The Satellite Altimetry capabilities within the Observation Module as well as the WAVEWATCH III class in the Model Module were adapted from [Ali Abdolali](https://github.com/aliabdolali)'s [wave-tools](https://github.com/erdc/wave-tools) package developed under the [US Army Engineer Research and Development Center](https://github.com/erdc). Please cite:
+
+Abdolali A., A. Roland, A. Van Der Westhuysen, J. Meixner, A. Chawla, T. Hesser,  J. M. Smith, and M. Dutour Sikiric, Large-scale Hurricane Modeling Using Domain Decomposition Parallelization and Implicit Scheme Implemented in WAVEWATCH III Wave Model. *Coastal Engineering* 157 (2020): 103656. https://doi.org/10.1016/j.coastaleng.2020.10365.
 
 ---
   
