@@ -68,7 +68,7 @@ def test_download_file_success(mock_get):
         success = _download_file('http://fake.url/file.nc', '/fake/path/file.nc')
 
         assert success is True
-        mock_get.assert_called_once_with('http://fake.url/file.nc', stream=True)
+        mock_get.assert_called_once_with('http://fake.url/file.nc', stream=True, timeout=60)
         m_open.assert_called_once_with('/fake/path/file.nc', 'wb')
         m_open().write.assert_called_once_with(b'fake data')
 
@@ -86,7 +86,7 @@ def test_download_file_failure(mock_remove, mock_exists, mock_get):
     success = _download_file('http://fake.url/file.nc', '/fake/path/file.nc')
 
     assert success is False
-    mock_get.assert_called_once_with('http://fake.url/file.nc', stream=True)
+    mock_get.assert_called_once_with('http://fake.url/file.nc', stream=True, timeout=60)
     # Check that it attempts to clean up the file
     mock_remove.assert_called_once_with('/fake/path/file.nc')
 
