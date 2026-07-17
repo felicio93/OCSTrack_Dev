@@ -190,7 +190,7 @@ def crop_by_shape(dataset: xr.Dataset,
     >>> cropped = crop_by_shape(ds, geojson)
     """
     try:
-        from shapely.geometry import shape as shapely_shape, Point, MultiPolygon
+        from shapely.geometry import shape as shapely_shape, Point
         from shapely.ops import unary_union
     except ImportError as exc:
         raise ImportError(

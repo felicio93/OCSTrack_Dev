@@ -47,10 +47,10 @@ def _parse_gr3_mesh(filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     Assumes the hgrid.gr3 file contains node-based data with the expected format.
     This was added so we don't need OCSMesh as a requirement anymore.
     """
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         _ = f.readline()  # mesh name
         ne_np_line = f.readline()
-        n_elements, n_nodes = map(int, ne_np_line.strip().split())
+        _n_elements, n_nodes = map(int, ne_np_line.strip().split())
 
         lons = np.empty(n_nodes)
         lats = np.empty(n_nodes)
@@ -343,9 +343,9 @@ class SCHISM:
                         # If simple float/int, try to decode. If already datetime, use as is.
                         # (SCHISM usually needs decoding if the file wasn't saved with CF conventions)
                         if not np.issubdtype(t.dtype, np.datetime64):
-                             t = xr.decode_cf(ds[['time']])['time'].values
+                            t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 print(f"Warning: Could not read time from {fpath}: {e}")
 
         if all_times:
@@ -811,9 +811,9 @@ class WW3:
                     if 'time' in ds:
                         t = ds['time'].values
                         if not np.issubdtype(t.dtype, np.datetime64):
-                             t = xr.decode_cf(ds[['time']])['time'].values
+                            t = xr.decode_cf(ds[['time']])['time'].values
                         all_times.append(t)
-            except Exception as e:
+            except (OSError, KeyError, ValueError) as e:
                 print(f"Warning: Could not read time from {fpath}: {e}")
 
         if all_times:
@@ -1039,15 +1039,12 @@ def set_depth( Vtransform, Vstretching, theta_s, theta_b, hc, N, igrid, h, zeta 
     else:
         z   = np.empty((Lp,Mp,N))
 
-    hmin    = np.min(h)
-    hmax    = np.max(h)
-
     if (igrid == 5):
         kgrid=1
     else:
         kgrid=0
 
-    s,C = stretching(Vstretching, theta_s, theta_b, hc, N, kgrid);
+    s,C = stretching(Vstretching, theta_s, theta_b, hc, N, kgrid)
     #-----------------------------------------------------------------------
     #  Average bathymetry and free-surface at requested C-grid type.
     #-----------------------------------------------------------------------
@@ -1148,7 +1145,7 @@ class ROMS:
         if not os.path.exists(ocean_in_path):
             raise FileNotFoundError("ocean.in not found in the run directory.")
 
-        with open(ocean_in_path, "r") as f:
+        with open(ocean_in_path, "r", encoding='utf-8') as f:
             for line in f:
                 sline = line.strip()
                 if not sline or sline.startswith("!"):
@@ -1222,7 +1219,7 @@ class ROMS:
 
                     if times[-1] >= self.start_date and times[0] <= self.end_date:
                         selected.append(fpath)
-            except Exception as exception:
+            except (OSError, KeyError, ValueError) as exception:
                 _logger.warning("Error reading %s: %s", fpath, exception)
                 continue
         return selected
@@ -1306,18 +1303,22 @@ class ROMS:
 
     @property
     def mesh_x(self):
+        """Return mesh longitudes."""
         return self._mesh_x
 
     @property
     def mesh_y(self):
+        """Return mesh latitudes."""
         return self._mesh_y
 
     @property
     def files(self):
+        """Return the list of selected model output files."""
         return self._files
 
     @property
     def time(self):
+        """Return the concatenated time array for all selected files."""
         if self._time is not None:
             return self._time
         if not self.files:
@@ -1330,9 +1331,9 @@ class ROMS:
                     if 'ocean_time' in ds:
                         t = ds['ocean_time'].values
                         if not np.issubdtype(t.dtype, np.datetime64):
-                             t = xr.decode_cf(ds[['ocean_time']])['ocean_time'].values
+                            t = xr.decode_cf(ds[['ocean_time']])['ocean_time'].values
                         all_times.append(t)
-            except Exception as exception:
+            except (OSError, KeyError, ValueError) as exception:
                 print(f"Warning: Could not read time from {fpath}: {exception}")
 
         if all_times:
