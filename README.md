@@ -151,7 +151,7 @@ Cassalho, F., S. Mani, S. Moghimi, F. Ye, and Y. J. Zhang. "OCSMesh and an autom
 
 If you use OCSTrack for 2D collocation with satellite altimetry, please cite:
 
-Cassalho, F., A. L. Kurapov, S. Moghimi, S. M. Durski, J. Y. Zhang, A. Abdolali, et al. "Tidal modulation of waves around the Aleutian Islands." *Journal of Geophysical Research: Oceans* 131 (2026): e2025JC023780. https://doi.org/10.1029/2025JC023780.
+Cassalho, F., A. L. Kurapov, S. Moghimi, S. M. Durski, J. Y. Zhang, A. Abdolali, B. Khazaei, Y. Sun, F. Ye, E. Myers. "Tidal modulation of waves around the Aleutian Islands." *Journal of Geophysical Research: Oceans* 131 (2026): e2025JC023780. https://doi.org/10.1029/2025JC023780.
 
 ## Contributors
 
