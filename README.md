@@ -137,7 +137,7 @@ For more detailed examples and the full API reference, please see our documentat
 
 ## Contributing
 
-We welcome contributions! If you have ideas for new features, find a bug, or would like to improve the documentation, please open an issue or submit a pull request.
+We welcome contributions! If you have ideas for new features, find a bug, or would like to improve the documentation, please open an issue or submit a pull request. Developers, please follow the guidelines [here](https://github.com/noaa-ocs-modeling/OCSTrack/blob/main/docs/contributing.md).
 
 ## License
 
