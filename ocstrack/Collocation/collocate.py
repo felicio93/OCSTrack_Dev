@@ -293,8 +293,8 @@ class Collocate:
             else:
                 if self.temporal_interp:
                     _logger.warning(
-                        "Cannot perform temporal interpolation for %s as it has less than 2 timesteps. "
-                        "Falling back to nearest neighbor.",
+                        "Cannot perform temporal interpolation for %s as it has "
+                        "less than 2 timesteps. Falling back to nearest neighbor.",
                         path,
                     )
                 obs_sub, idx, tdel = temporal_nearest(self.obs.ds,

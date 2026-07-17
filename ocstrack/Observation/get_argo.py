@@ -21,6 +21,28 @@ from .urls import ARGO_BASE_URL
 
 _logger = logging.getLogger(__name__)
 
+# Argo metadata/QC variables dropped during loading to avoid CF-decoding
+# errors and keep only the fields needed for collocation.
+_DROP_VARS = [
+    'DATA_TYPE', 'FORMAT_VERSION', 'HANDBOOK_VERSION', 'REFERENCE_DATE_TIME',
+    'DATE_CREATION', 'DATE_UPDATE', 'PLATFORM_NUMBER', 'PROJECT_NAME',
+    'PI_NAME', 'STATION_PARAMETERS', 'DIRECTION', 'DATA_CENTRE',
+    'DC_REFERENCE', 'DATA_STATE_INDICATOR', 'DATA_MODE', 'PLATFORM_TYPE',
+    'FLOAT_SERIAL_NO', 'FIRMWARE_VERSION', 'WMO_INST_TYPE', 'JULD_QC',
+    'POSITION_QC', 'POSITIONING_SYSTEM', 'PROFILE_PRES_QC',
+    'PROFILE_TEMP_QC', 'PROFILE_PSAL_QC', 'VERTICAL_SAMPLING_SCHEME',
+    'PRES_QC', 'PRES_ADJUSTED_QC', 'TEMP_QC', 'TEMP_ADJUSTED_QC',
+    'PSAL_QC', 'PSAL_ADJUSTED_QC', 'PARAMETER', 'SCIENTIFIC_CALIB_EQUATION',
+    'SCIENTIFIC_CALIB_COEFFICIENT', 'SCIENTIFIC_CALIB_COMMENT',
+    'SCIENTIFIC_CALIB_DATE', 'HISTORY_INSTITUTION', 'HISTORY_STEP',
+    'HISTORY_SOFTWARE', 'HISTORY_SOFTWARE_RELEASE', 'HISTORY_REFERENCE',
+    'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
+    'HISTORY_START_PRES', 'HISTORY_STOP_PRES', 'HISTORY_PREVIOUS_VALUE',
+    'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
+    'HISTORY_INSTITUTION', 'N_HISTORY', 'CONFIG_MISSION_NUMBER', 'PRES_ADJUSTED_ERROR',
+    'TEMP_ADJUSTED_ERROR', 'PSAL_ADJUSTED_ERROR', 'CYCLE_NUMBER'
+]
+
 def generate_monthly_dates(start_date_str: str,
                            end_date_str: str) -> List[Tuple[str, str]]:
     """
@@ -63,7 +85,7 @@ def _download_file(url: str, target_path: str) -> bool:
     """
 
     try:
-        with requests.get(url, stream=True) as r:
+        with requests.get(url, stream=True, timeout=60) as r:
             r.raise_for_status()
             with open(target_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
@@ -137,7 +159,7 @@ def download_argo_data(year: str,
         visited_urls.add(current_url)
 
         try:
-            response = requests.get(current_url)
+            response = requests.get(current_url, timeout=60)
             response.raise_for_status()
         except requests.RequestException as e:
             _logger.warning(f"Failed to access URL {current_url}: {e}")
@@ -163,7 +185,7 @@ def download_argo_data(year: str,
                     if not start_dt <= file_date <= end_dt:
                         _logger.info(f"Skipping download (out of date range): {filename}")
                         continue # Skip this file
-                except Exception:
+                except (ValueError, IndexError):
                     _logger.warning(f"Could not parse date from {filename}. Skipping.")
                     continue
 
@@ -365,26 +387,6 @@ def crop_argo_data_by_shape(
     """
     os.makedirs(cropped_dir, exist_ok=True)
 
-    DROP_VARS = [
-        'DATA_TYPE', 'FORMAT_VERSION', 'HANDBOOK_VERSION', 'REFERENCE_DATE_TIME',
-        'DATE_CREATION', 'DATE_UPDATE', 'PLATFORM_NUMBER', 'PROJECT_NAME',
-        'PI_NAME', 'STATION_PARAMETERS', 'DIRECTION', 'DATA_CENTRE',
-        'DC_REFERENCE', 'DATA_STATE_INDICATOR', 'DATA_MODE', 'PLATFORM_TYPE',
-        'FLOAT_SERIAL_NO', 'FIRMWARE_VERSION', 'WMO_INST_TYPE', 'JULD_QC',
-        'POSITION_QC', 'POSITIONING_SYSTEM', 'PROFILE_PRES_QC',
-        'PROFILE_TEMP_QC', 'PROFILE_PSAL_QC', 'VERTICAL_SAMPLING_SCHEME',
-        'PRES_QC', 'PRES_ADJUSTED_QC', 'TEMP_QC', 'TEMP_ADJUSTED_QC',
-        'PSAL_QC', 'PSAL_ADJUSTED_QC', 'PARAMETER', 'SCIENTIFIC_CALIB_EQUATION',
-        'SCIENTIFIC_CALIB_COEFFICIENT', 'SCIENTIFIC_CALIB_COMMENT',
-        'SCIENTIFIC_CALIB_DATE', 'HISTORY_INSTITUTION', 'HISTORY_STEP',
-        'HISTORY_SOFTWARE', 'HISTORY_SOFTWARE_RELEASE', 'HISTORY_REFERENCE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
-        'HISTORY_START_PRES', 'HISTORY_STOP_PRES', 'HISTORY_PREVIOUS_VALUE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
-        'HISTORY_INSTITUTION', 'N_HISTORY', 'CONFIG_MISSION_NUMBER', 'PRES_ADJUSTED_ERROR',
-        'TEMP_ADJUSTED_ERROR', 'PSAL_ADJUSTED_ERROR', 'CYCLE_NUMBER'
-    ]
-
     start_dt = np.datetime64(start_date)
     end_dt = np.datetime64(end_date)
 
@@ -394,7 +396,7 @@ def crop_argo_data_by_shape(
                 file_path,
                 engine="netcdf4",
                 decode_cf=False,
-                drop_variables=DROP_VARS
+                drop_variables=_DROP_VARS
             ) as ds_raw:
                 ds = xr.decode_cf(ds_raw, decode_coords=False)
 
@@ -417,7 +419,7 @@ def crop_argo_data_by_shape(
             else:
                 _logger.warning(f"Skipping empty cropped dataset: {file_path}")
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             _logger.warning(f"Failed to process {file_path}: {type(e).__name__} - {e}")
 
 
@@ -458,26 +460,6 @@ def crop_argo_data(file_paths: List[str],
 
     os.makedirs(cropped_dir, exist_ok=True)
 
-    DROP_VARS = [
-        'DATA_TYPE', 'FORMAT_VERSION', 'HANDBOOK_VERSION', 'REFERENCE_DATE_TIME',
-        'DATE_CREATION', 'DATE_UPDATE', 'PLATFORM_NUMBER', 'PROJECT_NAME',
-        'PI_NAME', 'STATION_PARAMETERS', 'DIRECTION', 'DATA_CENTRE',
-        'DC_REFERENCE', 'DATA_STATE_INDICATOR', 'DATA_MODE', 'PLATFORM_TYPE',
-        'FLOAT_SERIAL_NO', 'FIRMWARE_VERSION', 'WMO_INST_TYPE', 'JULD_QC',
-        'POSITION_QC', 'POSITIONING_SYSTEM', 'PROFILE_PRES_QC',
-        'PROFILE_TEMP_QC', 'PROFILE_PSAL_QC', 'VERTICAL_SAMPLING_SCHEME',
-        'PRES_QC', 'PRES_ADJUSTED_QC', 'TEMP_QC', 'TEMP_ADJUSTED_QC',
-        'PSAL_QC', 'PSAL_ADJUSTED_QC', 'PARAMETER', 'SCIENTIFIC_CALIB_EQUATION',
-        'SCIENTIFIC_CALIB_COEFFICIENT', 'SCIENTIFIC_CALIB_COMMENT',
-        'SCIENTIFIC_CALIB_DATE', 'HISTORY_INSTITUTION', 'HISTORY_STEP',
-        'HISTORY_SOFTWARE', 'HISTORY_SOFTWARE_RELEASE', 'HISTORY_REFERENCE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
-        'HISTORY_START_PRES', 'HISTORY_STOP_PRES', 'HISTORY_PREVIOUS_VALUE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER','HISTORY_QCTEST',
-        'HISTORY_INSTITUTION','N_HISTORY','CONFIG_MISSION_NUMBER','PRES_ADJUSTED_ERROR',
-        'TEMP_ADJUSTED_ERROR','PSAL_ADJUSTED_ERROR','CYCLE_NUMBER'
-    ]
-
     start_dt = np.datetime64(start_date)
     end_dt = np.datetime64(end_date)
 
@@ -487,7 +469,7 @@ def crop_argo_data(file_paths: List[str],
                 file_path,
                 engine="netcdf4",
                 decode_cf=False,
-                drop_variables=DROP_VARS
+                drop_variables=_DROP_VARS
             ) as ds_raw:
                 ds = xr.decode_cf(ds_raw, decode_coords=False)
 
@@ -511,7 +493,7 @@ def crop_argo_data(file_paths: List[str],
             else:
                 _logger.warning(f"Skipping empty cropped dataset: {file_path}")
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             _logger.warning(f"Failed to process {file_path}: {type(e).__name__} - {e}")
 
 def clean_argo_data(file_paths: List[str],
@@ -537,26 +519,6 @@ def clean_argo_data(file_paths: List[str],
 
     os.makedirs(clean_dir, exist_ok=True)
 
-    DROP_VARS = [
-        'DATA_TYPE', 'FORMAT_VERSION', 'HANDBOOK_VERSION', 'REFERENCE_DATE_TIME',
-        'DATE_CREATION', 'DATE_UPDATE', 'PLATFORM_NUMBER', 'PROJECT_NAME',
-        'PI_NAME', 'STATION_PARAMETERS', 'DIRECTION', 'DATA_CENTRE',
-        'DC_REFERENCE', 'DATA_STATE_INDICATOR', 'DATA_MODE', 'PLATFORM_TYPE',
-        'FLOAT_SERIAL_NO', 'FIRMWARE_VERSION', 'WMO_INST_TYPE', 'JULD_QC',
-        'POSITION_QC', 'POSITIONING_SYSTEM', 'PROFILE_PRES_QC',
-        'PROFILE_TEMP_QC', 'PROFILE_PSAL_QC', 'VERTICAL_SAMPLING_SCHEME',
-        'PRES_QC', 'PRES_ADJUSTED_QC', 'TEMP_QC', 'TEMP_ADJUSTED_QC',
-        'PSAL_QC', 'PSAL_ADJUSTED_QC', 'PARAMETER', 'SCIENTIFIC_CALIB_EQUATION',
-        'SCIENTIFIC_CALIB_COEFFICIENT', 'SCIENTIFIC_CALIB_COMMENT',
-        'SCIENTIFIC_CALIB_DATE', 'HISTORY_INSTITUTION', 'HISTORY_STEP',
-        'HISTORY_SOFTWARE', 'HISTORY_SOFTWARE_RELEASE', 'HISTORY_REFERENCE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER', 'HISTORY_QCTEST',
-        'HISTORY_START_PRES', 'HISTORY_STOP_PRES', 'HISTORY_PREVIOUS_VALUE',
-        'HISTORY_DATE', 'HISTORY_ACTION', 'HISTORY_PARAMETER','HISTORY_QCTEST',
-        'HISTORY_INSTITUTION','N_HISTORY','CONFIG_MISSION_NUMBER','PRES_ADJUSTED_ERROR',
-        'TEMP_ADJUSTED_ERROR','PSAL_ADJUSTED_ERROR','CYCLE_NUMBER'
-    ]
-
     start_dt = np.datetime64(start_date)
     end_dt = np.datetime64(end_date)
 
@@ -566,7 +528,7 @@ def clean_argo_data(file_paths: List[str],
                 file_path,
                 engine="netcdf4",
                 decode_cf=False,
-                drop_variables=DROP_VARS
+                drop_variables=_DROP_VARS
             ) as ds_raw:
                 ds = xr.decode_cf(ds_raw, decode_coords=False)
                 ds.load()
@@ -586,7 +548,7 @@ def clean_argo_data(file_paths: List[str],
             else:
                 _logger.warning(f"Skipping empty time-filtered dataset: {file_path}")
 
-        except Exception as exception:
+        except Exception as exception:  # pylint: disable=broad-except
             _logger.warning(
                 "Failed to clean %s: %s - %s",
                 file_path,
